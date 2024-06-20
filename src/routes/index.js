@@ -15,7 +15,8 @@ router.use('/users', userRoutes);
 router.use('/instructors', instructorRoutes);
 router.use('/institutions', institutionRoutes);
 router.use('/events', eventRoutes);
-router.use('/groups', groupRoutes);  // Changed from '/classes'
+// Changed from '/classes'
+router.use('/groups', groupRoutes);  
 router.use('/chat', chatRoutes);
 router.use('/donations', donationRoutes);
 

@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ichillous/hbackend.git"
+    "url": "git+https://github.com/ichillous/hbackend-api.git"
   },
   "author": "Isiah Chillous",
   "license": "ISC",

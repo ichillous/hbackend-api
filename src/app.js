@@ -2,11 +2,15 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
+
 const config = require('./config');
 const connectDB = require('./config/database');
-const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
+
+const routes = require('./routes');
 const userRoutes = require('./routes/user.routes');
+const groupRoutes = require('./routes/group.routes');
+const eventRoutes = require('./routes/event.routes');
 
 
 
@@ -26,6 +30,8 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api', routes);
 app.use('/api/users', userRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/events', eventRoutes);
 
 // Root route
 app.get('/', (req, res) => {
