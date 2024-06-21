@@ -20,6 +20,8 @@ const groupSchema = new mongoose.Schema(
       },
     ],
     type: { type: String, enum: ["class", "circle"], required: true },
+    maxMembers: { type: Number },
+    isClass: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

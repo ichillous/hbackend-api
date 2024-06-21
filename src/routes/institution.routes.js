@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
+const institutionController = require('../controllers/institution.controller');
+const authMiddleware = require('../middleware/auth');
 // TODO: Implement institution controller
 // const institutionController = require('../controllers/institution.controller');
 
@@ -23,5 +25,9 @@ router.delete('/events/:id', (req, res) => {
   // TODO: Implement delete event
   res.status(501).json({ message: 'Delete event not implemented yet' });
 });
+
+router.get('/nearest-mosque', institutionController.getNearestMosque);
+router.put('/prayer-times', authMiddleware, institutionController.updatePrayerTimes);
+
 
 module.exports = router;

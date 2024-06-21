@@ -1,22 +1,25 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const eventSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    date: { type: Date, required: true },
-    location: { type: String, required: true },
-    organizer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    maxAttendees: { type: Number },
-    isOnline: { type: Boolean, default: false },
-    link: { type: String },
+const eventSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  date: { type: Date, required: true },
+  startTime: { type: String, required: true },
+  endTime: { type: String, required: true },
+  location: {
+    type: { type: String, default: 'Point' },
+    coordinates: [Number] // [longitude, latitude]
   },
-  { timestamps: true }
-);
+  address: { type: String, required: true },
+  organizer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  favorited_by: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  favoriteCount: {
+    type: Number,
+    default: 0
+  },
+  image: { type: String }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Event", eventSchema);
+eventSchema.index({ location: '2dsphere' }); // For geospatial queries
+
+module.exports = mongoose.model('Event', eventSchema);

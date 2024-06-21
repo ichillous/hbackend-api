@@ -1,27 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const instructorController = require('../controllers/instructor.controller');
+const authMiddleware = require('../middleware/auth');
 
-// TODO: Implement instructor controller
-// const instructorController = require('../controllers/instructor.controller');
+// Middleware to check if the user is an instructor
+const isInstructor = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (user.role !== 'instructor') {
+      return res.status(403).json({ message: 'Access denied. Only instructors can perform this action.' });
+    }
+    next();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-router.post('/groups', (req, res) => {
-  // TODO: Implement create group (class or circle)
-  res.status(501).json({ message: 'Create group not implemented yet' });
-});
-
-router.get('/groups', (req, res) => {
-  // TODO: Implement get instructor groups
-  res.status(501).json({ message: 'Get instructor groups not implemented yet' });
-});
-
-router.put('/groups/:id', (req, res) => {
-  // TODO: Implement update group
-  res.status(501).json({ message: 'Update group not implemented yet' });
-});
-
-router.delete('/groups/:id', (req, res) => {
-  // TODO: Implement delete group
-  res.status(501).json({ message: 'Delete group not implemented yet' });
-});
+router.post('/classes', authMiddleware, isInstructor, instructorController.createClass);
+router.get('/classes', authMiddleware, isInstructor, instructorController.getInstructorClasses);
+router.put('/classes/:classId', authMiddleware, isInstructor, instructorController.updateClass);
+router.delete('/classes/:classId', authMiddleware, isInstructor, instructorController.deleteClass);
+router.get('/classes/:classId/members', authMiddleware, isInstructor, instructorController.getClassMembers);
 
 module.exports = router;
