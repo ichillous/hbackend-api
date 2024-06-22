@@ -1,22 +1,12 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const chatController = require('../controllers/chat.controller');
+const authMiddleware = require('../middleware/auth');
 
-// TODO: Implement chat controller
-// const chatController = require('../controllers/chat.controller');
-
-router.get("/rooms", (req, res) => {
-  // TODO: Implement get chat rooms
-  res.status(501).json({ message: "Get chat rooms not implemented yet" });
-});
-
-router.post("/rooms", (req, res) => {
-  // TODO: Implement create chat room
-  res.status(501).json({ message: "Create chat room not implemented yet" });
-});
-
-router.get("/rooms/:id/messages", (req, res) => {
-  // TODO: Implement get room messages
-  res.status(501).json({ message: "Get room messages not implemented yet" });
-});
+router.post('/create', authMiddleware, chatController.createChat);
+router.post('/message', authMiddleware, chatController.sendMessage);
+router.get('/:chatId/messages', authMiddleware, chatController.getChatMessages);
+router.get('/user', authMiddleware, chatController.getUserChats);
+router.post('/:chatId/messages/:messageId/read', authMiddleware, chatController.markMessageAsRead);
 
 module.exports = router;

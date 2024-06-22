@@ -2,7 +2,8 @@ const axios = require('axios');
 
 const getPrayerTimes = async (latitude, longitude, date) => {
   try {
-    const response = await axios.get('http://api.aladhan.com/v1/timings', {
+    // Make sure this is working. I confirmed it uses lat and long
+    const response = await axios.get('http://api.aladhan.com/v1/timingsByAddress/:date', {
       params: {
         latitude,
         longitude,

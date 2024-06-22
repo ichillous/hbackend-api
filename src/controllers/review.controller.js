@@ -1,5 +1,11 @@
 const Review = require('../models/Review');
 const Group = require('../models/Group');
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-08-16', // Use the latest API version
+  maxNetworkRetries: 2,
+  timeout: 20000, // in milliseconds
+});
 
 exports.createReview = async (req, res) => {
   try {
