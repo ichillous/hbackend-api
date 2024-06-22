@@ -1,49 +1,83 @@
-# Husna Backend API
+# Husna App Backend
 
-Welcome to the Husna Backend API! This API serves as the backend for the Husna application, providing various endpoints for data retrieval and manipulation.
+This repository contains the backend API for the Husna App, a platform designed to connect Muslims through live discussions, classes, events, and prayer time notifications.
 
-## Installation
+## Pre-Deployment Architecture
 
-To get started with the Husna Backend API, follow these steps:
+Our current development setup is illustrated in the following diagram:
 
-1. Clone the repository: `git clone https://github.com/your-username/hbackend-api.git`
-2. Navigate to the project directory: `cd hbackend-api`
-3. Install the dependencies: `npm install`
-4. Set up the environment variables: Create a `.env` file in the root directory and configure the required variables.
-5. Start the server: `npm start`
+![Pre-Deployment Architecture](./assets/developmentArchitecture.png)
 
-## Usage
+## Project Overview
 
-Once the server is up and running, you can access the API endpoints using the following base URL: `http://localhost:3000/api`
+The Husna App backend is built with Node.js and Express, using MongoDB as the database. It provides API endpoints for various features including user management, live voice rooms (Circles), classes, events, and prayer times.
 
-### Authentication
+### Key Features
 
-Some endpoints require authentication. To authenticate, include a valid JWT token in the `Authorization` header of your requests.
+- User authentication and authorization
+- Live voice rooms (Circles)
+- Classes and Events management
+- Prayer time calculations and notifications
+- Document verification for Instructors and Institutions
+- Search functionality
+- Payment integration for donations and paid classes
 
-### Endpoints
+## Getting Started
 
-Here are the available endpoints:
+### Prerequisites
 
-- `GET /users`: Retrieve a list of all users.
-- `GET /users/:id`: Retrieve a specific user by ID.
-- `POST /users`: Create a new user.
-- `PUT /users/:id`: Update an existing user.
-- `DELETE /users/:id`: Delete a user.
+- Node.js (v14 or later)
+- MongoDB
+- ngrok (for local development)
+- Postman (for API testing)
 
-For more detailed information on each endpoint, refer to the API documentation.
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/husna-app-backend.git
+   ```
+
+2. Install dependencies:
+   ```
+   cd husna-app-backend
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```
+   cp .env.example .env
+   ```
+   Edit the `.env` file with your configuration.
+
+4. Start the development server:
+   ```
+   npm run dev
+   ```
+
+5. (Optional) Start ngrok to expose your local server:
+   ```
+   ngrok http 3000
+   ```
+
+## Development Workflow
+
+1. Create a new branch for each feature or bug fix.
+2. Write tests for new features using Jest and Supertest.
+3. Implement the feature or fix.
+4. Run tests locally: `npm test`
+5. Push your branch and create a pull request.
+6. GitHub Actions will run automated tests on your pull request.
+7. After review and approval, merge your changes into the main branch.
+
+## API Documentation
+
+API documentation is available via Postman. Import the Postman collection from the `docs` folder for a complete list of endpoints and example requests.
 
 ## Contributing
 
-We welcome contributions to the Husna Backend API! If you'd like to contribute, please follow these guidelines:
-
-1. Fork the repository.
-2. Create a new branch for your feature: `git checkout -b feature-name`
-3. Make your changes and commit them: `git commit -m "Add feature"`
-4. Push your changes to your forked repository: `git push origin feature-name`
-5. Open a pull request to the main repository.
-
-Please ensure that your code follows the project's coding style and includes appropriate tests.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
-The Husna Backend API is open source and released under the [MIT License](https://opensource.org/licenses/MIT).
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
