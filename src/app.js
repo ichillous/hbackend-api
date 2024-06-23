@@ -1,5 +1,6 @@
 // Description: Main application file. This file is responsible for starting the server, connecting to the database, and setting up middleware and routes.
 require("dotenv").config();
+
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
@@ -16,8 +17,7 @@ const config = require("./config");
 // Database
 const connectDB = require("./config/database");
 
-// Middleware
-const errorHandler = require("./middleware/errorHandler");
+
 
 // Routes
 const routes = require("./routes");
@@ -42,10 +42,27 @@ const http = require("http");
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Webhook-specific middleware
+app.use('/api/donations/webhook', express.raw({type: 'application/json'}));
+
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/donations/webhook') {
+    req.rawBody = req.body;
+    console.log("Webhook request received");
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Raw Body:", req.rawBody.toString());
+  }
+  next();
+});
 // Connect to Database
 connectDB();
 
-// Middleware
+// Other middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).send('Something broke!');
+});
+const errorHandler = require("./middleware/errorHandler");
 app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
@@ -57,6 +74,34 @@ app.use((req, res, next) => {
   }
 });
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/donations/webhook') {
+    let data = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      req.rawBody = data;
+      next();
+    });
+  } else {
+    next();
+  }
+});
+
+app.use((req, res, next) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  if (req.rawBody) {
+    console.log('Raw Body:', req.rawBody);
+  } else if (req.body) {
+    console.log('Body:', req.body);
+  }
+  next();
+});
+
 
 // Routes
 app.use("/api", routes);
@@ -81,7 +126,7 @@ app.get("/", (req, res) => {
   });
 });
 
-app.post('/api/donations/webhook', express.raw({type: 'application/json'}), donationController.handleStripeWebhook);
+app.use(errorHandler);
 
 // 404 handler
 app.use((req, res, next) => {
@@ -126,10 +171,9 @@ io.on("connection", (socket) => {
     console.log("Client disconnected");
   });
 });
-app.set('trust proxy', true)
+// app.set('trust proxy', true)
 
 // Error handling
-app.use(errorHandler);
 console.log('Environment variables:', {
   NODE_ENV: process.env.NODE_ENV,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'Set' : 'Not set',
