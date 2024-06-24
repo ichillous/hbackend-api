@@ -30,17 +30,21 @@ const instructorRoutes = require("./routes/instructor.routes");
 const favoriteRoutes = require("./routes/favorite.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const reviewRoutes = require("./routes/review.routes");
-const { apiLimiter } = require("./middleware/rateLimiter");
 const paymentRoutes = require("./routes/payment.routes");
 const donationRoutes = require('./routes/donation.routes');
 const chatRoutes = require("./routes/chat.routes");
+const prayerTimeRoutes = require('./routes/prayerTime.routes');
+const twilioRoutes = require('./routes/twilio.routes');
+
 
 // Initialize express app
 const app = express();
-const socketIo = require("socket.io");
 const http = require("http");
+const socketIo = require("socket.io");
 const server = http.createServer(app);
 const io = socketIo(server);
+const twilio = require('twilio');
+const twilioClient = twilio(process.env.TWILIO_API_KEY, process.env.TWILIO_API_SECRET, { accountSid: process.env.TWILIO_ACCOUNT_SID });
 
 // Webhook-specific middleware
 app.use('/api/donations/webhook', express.raw({type: 'application/json'}));
@@ -61,6 +65,7 @@ connectDB();
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).send('Something broke!');
+  next();
 });
 const errorHandler = require("./middleware/errorHandler");
 app.use(helmet());
@@ -114,10 +119,18 @@ app.use("/api/instructor", instructorRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use(apiLimiter);
 app.use("/api/payments", paymentRoutes);
 app.use('/api/donations', donationRoutes);
 app.use("/api/chat", chatRoutes);
+app.use('/api/prayer-times', prayerTimeRoutes);
+app.use('/api/twilio', twilioRoutes);
+app.post('/api/twilio/voice', (req, res) => {
+  const twiml = new twilio.twiml.VoiceResponse();
+  twiml.say('Welcome to the group call');
+  twiml.dial().conference('My conference');
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
 
 // Root route
 app.get("/", (req, res) => {
@@ -133,44 +146,28 @@ app.use((req, res, next) => {
   res.status(404).json({ message: "Not Found" });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
 
 
-io.on("connection", (socket) => {
-  console.log("New client connected");
+io.on('connection', (socket) => {
+  console.log('New client connected');
 
-  socket.on("join chat", (chatId) => {
-    socket.join(chatId);
-    console.log(`User joined chat: ${chatId}`);
+  socket.on('join-voip-room', (groupId) => {
+    socket.join(`voip-${groupId}`);
   });
 
-  socket.on("leave chat", (chatId) => {
-    socket.leave(chatId);
-    console.log(`User left chat: ${chatId}`);
+  socket.on('leave-voip-room', (groupId) => {
+    socket.leave(`voip-${groupId}`);
   });
 
-  socket.on("chat message", async (data) => {
-    try {
-      const { chatId, content, userId } = data;
-      const chatController = require("./controllers/chat.controller");
-      const newMessage = await chatController.createMessage(
-        chatId,
-        userId,
-        content
-      );
-      io.to(chatId).emit("new message", newMessage);
-    } catch (error) {
-      console.error("Error handling chat message:", error);
-    }
+  socket.on('voip-signal', ({ groupId, signal, to }) => {
+    io.to(`voip-${groupId}`).emit('voip-signal', { from: socket.id, signal, to });
   });
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
   });
 });
+;
 // app.set('trust proxy', true)
 
 // Error handling
