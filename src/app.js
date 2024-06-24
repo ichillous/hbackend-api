@@ -26,9 +26,8 @@ const groupRoutes = require("./routes/group.routes");
 const eventRoutes = require("./routes/event.routes");
 const searchRoutes = require("./routes/search.routes");
 const institutionRoutes = require("./routes/institution.routes");
-console.log('Loaded routes:', Object.keys(require('./routes')));
 const instructorRoutes = require('./routes/instructor.routes');
-console.log('Instructor routes:', Object.keys(instructorRoutes));const favoriteRoutes = require("./routes/favorite.routes");
+const favoriteRoutes = require("./routes/favorite.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
@@ -36,6 +35,7 @@ const donationRoutes = require('./routes/donation.routes');
 const chatRoutes = require("./routes/chat.routes");
 const prayerTimeRoutes = require('./routes/prayerTime.routes');
 const twilioRoutes = require('./routes/twilio.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 
 // Initialize express app
@@ -48,10 +48,9 @@ const twilio = require('twilio');
 const twilioClient = twilio(process.env.TWILIO_API_KEY, process.env.TWILIO_API_SECRET, { accountSid: process.env.TWILIO_ACCOUNT_SID });
 
 // Webhook-specific middleware
-app.use('/api/donations/webhook', express.raw({type: 'application/json'}));
 
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/donations/webhook') {
+  if (req.originalUrl === '/api/payments/webhook') {
     req.rawBody = req.body;
     console.log("Webhook request received");
     console.log("Headers:", JSON.stringify(req.headers, null, 2));
@@ -73,7 +72,7 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/donations/webhook') {
+  if (req.originalUrl === '/api/payments/webhook') {
     next();
   } else {
     express.json()(req, res, next);
@@ -82,7 +81,7 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/donations/webhook') {
+  if (req.originalUrl === '/api/payments/webhook') {
     let data = '';
     req.setEncoding('utf8');
     req.on('data', (chunk) => {
@@ -121,9 +120,9 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
-app.use('/api/donations', donationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use('/api/prayer-times', prayerTimeRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/twilio', twilioRoutes);
 app.post('/api/twilio/voice', (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();

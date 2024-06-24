@@ -1,104 +1,175 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-08-16",
-});
+// src/controllers/payment.controller.js
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const Payment = require("../models/Payment");
 const User = require("../models/User");
+const Group = require("../models/Group");
 
 exports.createPaymentIntent = async (req, res) => {
   try {
-    const { amount, currency } = req.body;
+    const { amount, currency, type, recipientId, relatedEntityId } = req.body;
+    const payerId = req.user.userId;
 
-    console.log("Creating payment intent:", { amount, currency });
+    let relatedEntityType;
+    if (type === 'donation') {
+      relatedEntityType = 'Donation';
+    } else if (type === 'class_payment') {
+      relatedEntityType = 'Group';
+    } else {
+      return res.status(400).json({ message: "Invalid payment type" });
+    }
+
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(400).json({ message: "Invalid recipient" });
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount * 100, // Stripe expects amount in cents
+      currency: currency,
+      metadata: { payerId, recipientId, type, relatedEntityId },
+    });
+
+    const payment = new Payment({
+      payer: payerId,
+      recipient: recipientId,
       amount,
       currency,
-      payment_method_types: ["card"],
+      type,
+      relatedEntity: relatedEntityId,
+      relatedEntityType,
+      stripePaymentIntentId: paymentIntent.id,
     });
 
-    console.log("Payment intent created:", paymentIntent.id);
+    await payment.save();
 
-    res.json({ clientSecret: paymentIntent.client_secret });
+    res.status(201).json({
+      message: "Payment initiated",
+      clientSecret: paymentIntent.client_secret,
+      paymentId: payment._id,
+    });
   } catch (error) {
-    console.error("Stripe API Error:", error);
-    res.status(500).json({
-      message: "An error occurred with the payment service.",
-      error: error.message,
-      type: error.type,
-    });
+    console.error("Error creating payment:", error);
+    res.status(500).json({ message: "Error creating payment", error: error.message });
   }
 };
 
-exports.processDonation = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
+exports.confirmPayment = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const payment = await Payment.findById(paymentId);
 
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      payment.stripePaymentIntentId
+    );
+
+    if (paymentIntent.status === "succeeded") {
+      payment.status = "completed";
+      await payment.save();
+      res.json({ message: "Payment confirmed", status: "completed" });
+    } else if (paymentIntent.status === "canceled") {
+      payment.status = "failed";
+      await payment.save();
+      res.json({ message: "Payment failed", status: "failed" });
+    } else {
+      res.json({ message: "Payment pending", status: "pending" });
+    }
+  } catch (error) {
+    console.error("Error confirming payment:", error);
+    res.status(500).json({ message: "Error confirming payment", error: error.message });
+  }
+};
+
+exports.getPaymentsByUser = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const payments = await Payment.find({ payer: userId })
+      .populate("recipient", "name")
+      .populate("relatedEntity");
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ message: "Error fetching payments", error: error.message });
+  }
+};
+
+exports.getPaymentsByRecipient = async (req, res) => {
+  try {
+    const recipientId = req.params.recipientId;
+    const payments = await Payment.find({
+      recipient: recipientId,
+      status: "completed",
+    })
+      .populate("payer", "name")
+      .populate("relatedEntity")
+      .select("-stripePaymentIntentId");
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ message: "Error fetching payments", error: error.message });
+  }
+};
+
+exports.handleStripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.body,
+      req.rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
+
+    // Acknowledge receipt of the event immediately
+    res.sendStatus(200);
+
+    // Process the event asynchronously
+    handleEvent(event).catch(console.error);
   } catch (err) {
-    console.error("Webhook Error:", err.message);
+    console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+};
 
-  // Handle the event
+async function handleEvent(event) {
   switch (event.type) {
     case "payment_intent.succeeded":
       const paymentIntent = event.data.object;
-      // Handle successful payment (e.g., update donation records)
-      console.log("PaymentIntent was successful!");
+      await handleSuccessfulPayment(paymentIntent);
       break;
     // ... handle other event types
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
+}
 
-  res.json({ received: true });
-};
-
-exports.webhook = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+async function handleSuccessfulPayment(paymentIntent) {
+  const payment = await Payment.findOne({
+    stripePaymentIntentId: paymentIntent.id,
+  });
+  if (payment) {
+    payment.status = "completed";
+    await payment.save();
+    
+    // Handle specific actions based on payment type
+    if (payment.type === 'class_payment') {
+      await handleClassPayment(payment);
+    }
+    // You might want to trigger some notifications or other actions here
   }
+}
 
-  // Handle the event
-  switch (event.type) {
-    case "payment_intent.succeeded":
-      const paymentIntent = event.data.object;
-      // Handle successful payment (e.g., update donation records)
-      break;
-    // ... handle other event types
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+async function handleClassPayment(payment) {
+  const group = await Group.findById(payment.relatedEntity);
+  if (group) {
+    group.members.push(payment.payer);
+    await group.save();
   }
+}
 
-  res.json({ received: true });
-};
-
-exports.testStripeConnection = async (req, res) => {
-  try {
-    const paymentMethods = await stripe.paymentMethods.list({
-      limit: 1,
-      type: "card",
-    });
-    res.json({ message: "Stripe connection successful", data: paymentMethods });
-  } catch (error) {
-    console.error("Stripe connection error:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to connect to Stripe", error: error.message });
-  }
-};
+module.exports = exports;

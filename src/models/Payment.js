@@ -1,7 +1,9 @@
+// src/models/Payment.js
+
 const mongoose = require('mongoose');
 
-const donationSchema = new mongoose.Schema({
-  donor: {
+const paymentSchema = new mongoose.Schema({
+  payer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -26,6 +28,20 @@ const donationSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed'],
     default: 'pending'
   },
+  type: {
+    type: String,
+    enum: ['donation', 'class_payment'],
+    required: true
+  },
+  relatedEntity: {
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'relatedEntityType'
+  },
+  relatedEntityType: {
+    type: String,
+    enum: ['Donation', 'Group'],
+    required: function() { return this.relatedEntity != null; }
+  },
   stripePaymentIntentId: {
     type: String
   },
@@ -46,4 +62,4 @@ const donationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Donation', donationSchema);
+module.exports = mongoose.model('Payment', paymentSchema);

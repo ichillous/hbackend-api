@@ -66,12 +66,12 @@ exports.updateInstitutionProfile = async (req, res) => {
 exports.getInstitutionDetails = async (req, res) => {
   try {
     const institution = await User.findById(req.params.id)
-      .select('name description address website phoneNumber followers events')
-      .populate('followers', 'name email')
-      .populate('events', 'title description startDate');
+      .select("name description address website phoneNumber followers events")
+      .populate("followers", "name email")
+      .populate("events", "title description startDate");
 
-    if (!institution || institution.role !== 'institution') {
-      return res.status(404).json({ message: 'Institution not found' });
+    if (!institution || institution.role !== "institution") {
+      return res.status(404).json({ message: "Institution not found" });
     }
 
     res.json(institution);
@@ -86,18 +86,20 @@ exports.addFollower = async (req, res) => {
     const institution = await User.findById(req.params.id);
     const follower = await User.findById(req.user.userId);
 
-    if (!institution || institution.role !== 'institution') {
-      return res.status(404).json({ message: 'Institution not found' });
+    if (!institution || institution.role !== "institution") {
+      return res.status(404).json({ message: "Institution not found" });
     }
 
     if (institution.followers.includes(follower._id)) {
-      return res.status(400).json({ message: 'User is already following this institution' });
+      return res
+        .status(400)
+        .json({ message: "User is already following this institution" });
     }
 
     institution.followers.push(follower._id);
     await institution.save();
 
-    res.json({ message: 'Successfully followed the institution', institution });
+    res.json({ message: "Successfully followed the institution", institution });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -109,18 +111,25 @@ exports.removeFollower = async (req, res) => {
     const institution = await User.findById(req.params.id);
     const follower = await User.findById(req.user.userId);
 
-    if (!institution || institution.role !== 'institution') {
-      return res.status(404).json({ message: 'Institution not found' });
+    if (!institution || institution.role !== "institution") {
+      return res.status(404).json({ message: "Institution not found" });
     }
 
     if (!institution.followers.includes(follower._id)) {
-      return res.status(400).json({ message: 'User is not following this institution' });
+      return res
+        .status(400)
+        .json({ message: "User is not following this institution" });
     }
 
-    institution.followers = institution.followers.filter(id => !id.equals(follower._id));
+    institution.followers = institution.followers.filter(
+      (id) => !id.equals(follower._id)
+    );
     await institution.save();
 
-    res.json({ message: 'Successfully unfollowed the institution', institution });
+    res.json({
+      message: "Successfully unfollowed the institution",
+      institution,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -129,11 +138,13 @@ exports.removeFollower = async (req, res) => {
 // Get institution followers
 exports.getInstitutionFollowers = async (req, res) => {
   try {
-    const institution = await User.findById(req.params.id)
-      .populate('followers', 'name email');
+    const institution = await User.findById(req.params.id).populate(
+      "followers",
+      "name email"
+    );
 
-    if (!institution || institution.role !== 'institution') {
-      return res.status(404).json({ message: 'Institution not found' });
+    if (!institution || institution.role !== "institution") {
+      return res.status(404).json({ message: "Institution not found" });
     }
 
     res.json(institution.followers);

@@ -1,11 +1,13 @@
-const User = require('../models/User');
-const Group = require('../models/Group');
+const User = require("../models/User");
+const Group = require("../models/Group");
 
 exports.createClass = async (req, res) => {
   try {
     const instructor = await User.findById(req.user.userId);
-    if (instructor.role !== 'instructor') {
-      return res.status(403).json({ message: 'Only instructors can create classes' });
+    if (instructor.role !== "instructor") {
+      return res
+        .status(403)
+        .json({ message: "Only instructors can create classes" });
     }
 
     const { name, description, schedule, isPaid, price, maxMembers } = req.body;
@@ -18,7 +20,7 @@ exports.createClass = async (req, res) => {
       isPaid,
       price,
       maxMembers,
-      type: 'class'
+      type: "class",
     });
 
     await newClass.save();
@@ -30,7 +32,10 @@ exports.createClass = async (req, res) => {
 
 exports.getInstructorClasses = async (req, res) => {
   try {
-    const classes = await Group.find({ createdBy: req.user.userId, type: 'class' });
+    const classes = await Group.find({
+      createdBy: req.user.userId,
+      type: "class",
+    });
     res.json(classes);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -41,13 +46,23 @@ exports.updateClass = async (req, res) => {
   try {
     const { classId } = req.params;
     const updates = req.body;
-    const classObj = await Group.findOne({ _id: classId, createdBy: req.user.userId, type: 'class' });
+    const classObj = await Group.findOne({
+      _id: classId,
+      createdBy: req.user.userId,
+      type: "class",
+    });
 
     if (!classObj) {
-      return res.status(404).json({ message: 'Class not found or you do not have permission to update it' });
+      return res
+        .status(404)
+        .json({
+          message: "Class not found or you do not have permission to update it",
+        });
     }
 
-    Object.keys(updates).forEach((update) => classObj[update] = updates[update]);
+    Object.keys(updates).forEach(
+      (update) => (classObj[update] = updates[update])
+    );
     await classObj.save();
 
     res.json(classObj);
@@ -59,13 +74,21 @@ exports.updateClass = async (req, res) => {
 exports.deleteClass = async (req, res) => {
   try {
     const { classId } = req.params;
-    const result = await Group.findOneAndDelete({ _id: classId, createdBy: req.user.userId, type: 'class' });
+    const result = await Group.findOneAndDelete({
+      _id: classId,
+      createdBy: req.user.userId,
+      type: "class",
+    });
 
     if (!result) {
-      return res.status(404).json({ message: 'Class not found or you do not have permission to delete it' });
+      return res
+        .status(404)
+        .json({
+          message: "Class not found or you do not have permission to delete it",
+        });
     }
 
-    res.json({ message: 'Class deleted successfully' });
+    res.json({ message: "Class deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -74,11 +97,19 @@ exports.deleteClass = async (req, res) => {
 exports.getClassMembers = async (req, res) => {
   try {
     const { classId } = req.params;
-    const classObj = await Group.findOne({ _id: classId, createdBy: req.user.userId, type: 'class' })
-      .populate('members', 'name email');
+    const classObj = await Group.findOne({
+      _id: classId,
+      createdBy: req.user.userId,
+      type: "class",
+    }).populate("members", "name email");
 
     if (!classObj) {
-      return res.status(404).json({ message: 'Class not found or you do not have permission to view its members' });
+      return res
+        .status(404)
+        .json({
+          message:
+            "Class not found or you do not have permission to view its members",
+        });
     }
 
     res.json(classObj.members);

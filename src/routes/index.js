@@ -8,7 +8,7 @@ const institutionRoutes = require("./institution.routes");
 const eventRoutes = require("./event.routes");
 const groupRoutes = require("./group.routes"); // Changed from classRoutes
 const chatRoutes = require("./chat.routes");
-const donationRoutes = require("./donation.routes");
+const paymentRoutes = require("./payment.routes");
 
 
 router.use("/auth", authRoutes);
@@ -19,7 +19,7 @@ router.use("/events", eventRoutes);
 // Changed from '/classes'
 router.use("/groups", groupRoutes);
 router.use("/chat", chatRoutes);
-router.use("/donations", donationRoutes);
+router.use("/payments", paymentRoutes);
 
 router.get("/", (req, res) => {
   res.json({ message: "Welcome to the Islamic Social App API" });

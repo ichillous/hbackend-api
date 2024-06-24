@@ -2,13 +2,14 @@ const Group = require("../models/Group");
 const User = require("../models/User");
 const { paginateResults } = require("../utils/pagination");
 const notificationController = require("./notification.controller");
-const twilioService = require('../services/twilio.service');
+const twilioService = require("../services/twilio.service");
 
 // Create a group
 exports.createGroup = async (req, res) => {
   try {
-    const { name, description, isPaid, price, schedule, type, maxMembers } = req.body;
-    
+    const { name, description, isPaid, price, schedule, type, maxMembers } =
+      req.body;
+
     const group = new Group({
       name,
       description,
@@ -20,16 +21,18 @@ exports.createGroup = async (req, res) => {
       maxMembers,
       isClass: type === "class",
     });
-    
+
     await group.save();
     res.status(201).json(group);
   } catch (error) {
     // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ message: "Validation Error", errors });
     }
-    res.status(500).json({ message: "Error creating group", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error creating group", error: error.message });
   }
 };
 
@@ -193,11 +196,9 @@ exports.addAdmin = async (req, res) => {
       group.createdBy.toString() !== req.user.userId &&
       !group.admins.includes(req.user.userId)
     ) {
-      return res
-        .status(403)
-        .json({
-          message: "Only the group creator or admins can add new admins",
-        });
+      return res.status(403).json({
+        message: "Only the group creator or admins can add new admins",
+      });
     }
 
     const newAdminId = req.body.userId;
@@ -225,9 +226,14 @@ exports.enableVoip = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ message: "Group not found" });
-    
-    if (group.createdBy.toString() !== req.user.userId && !group.admins.includes(req.user.userId)) {
-      return res.status(403).json({ message: "Only group creators or admins can enable VOIP" });
+
+    if (
+      group.createdBy.toString() !== req.user.userId &&
+      !group.admins.includes(req.user.userId)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Only group creators or admins can enable VOIP" });
     }
 
     group.voipEnabled = true;
@@ -244,13 +250,19 @@ exports.joinVoipCall = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ message: "Group not found" });
-    
+
     if (!group.voipEnabled) {
-      return res.status(400).json({ message: "VOIP is not enabled for this group" });
+      return res
+        .status(400)
+        .json({ message: "VOIP is not enabled for this group" });
     }
 
     if (!group.members.includes(req.user.userId)) {
-      return res.status(403).json({ message: "You must be a member of the group to join the call" });
+      return res
+        .status(403)
+        .json({
+          message: "You must be a member of the group to join the call",
+        });
     }
 
     if (!group.activeVoipMembers.includes(req.user.userId)) {
@@ -261,11 +273,11 @@ exports.joinVoipCall = async (req, res) => {
     // Generate Twilio Voice Token
     const token = twilioService.generateVoiceToken(req.user.userId, group._id);
 
-    res.json({ 
-      message: "Joined VOIP call", 
+    res.json({
+      message: "Joined VOIP call",
       groupId: group._id,
       token: token,
-      roomName: `group-${group._id}`
+      roomName: `group-${group._id}`,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -278,7 +290,7 @@ exports.leaveVoipCall = async (req, res) => {
     if (!group) return res.status(404).json({ message: "Group not found" });
 
     group.activeVoipMembers = group.activeVoipMembers.filter(
-      memberId => memberId.toString() !== req.user.userId
+      (memberId) => memberId.toString() !== req.user.userId
     );
     await group.save();
 
@@ -290,7 +302,10 @@ exports.leaveVoipCall = async (req, res) => {
 // Get active VOIP members
 exports.getActiveVoipMembers = async (req, res) => {
   try {
-    const group = await Group.findById(req.params.id).populate('activeVoipMembers', 'name');
+    const group = await Group.findById(req.params.id).populate(
+      "activeVoipMembers",
+      "name"
+    );
     if (!group) return res.status(404).json({ message: "Group not found" });
 
     res.json(group.activeVoipMembers);
@@ -299,6 +314,4 @@ exports.getActiveVoipMembers = async (req, res) => {
   }
 };
 
-
 module.exports = exports;
-
