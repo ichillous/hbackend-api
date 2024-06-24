@@ -110,45 +110,61 @@ exports.getDonationsByInstitution = async (req, res) => {
 };
 
 exports.handleStripeWebhook = async (req, res) => {
-  console.log("Webhook received!");
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-
   const sig = req.headers["stripe-signature"];
+  console.log("Webhook handler called");
+  console.log("Received Stripe signature:", sig);
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-    console.log("Webhook event constructed successfully");
+    console.log("Raw body:", req.rawBody);
+
+    const isNgrok = req.headers["x-forwarded-for"] !== undefined;
+    console.log("Is Ngrok request:", isNgrok);
+
+    if (isNgrok) {
+      const payload = JSON.parse(req.rawBody);
+      event = { type: payload.type, data: { object: payload.data.object } };
+      console.log("Parsed event from ngrok:", event);
+    } else {
+      event = stripe.webhooks.constructEvent(
+        req.rawBody,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+      console.log("Constructed event from Stripe:", event);
+    }
+
+    // Acknowledge receipt of the event immediately
+    res.sendStatus(200);
+
+    // Process the event asynchronously
+    handleEvent(event).catch(console.error);
   } catch (err) {
-    console.error("Webhook Error:", err.message);
+    console.error(`Webhook Error: ${err.message}`);
+    console.error(err.stack);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+};
 
-  console.log("Received event type:", event.type);
+async function handleEvent(event) {
+  console.log("Event Type:", event.type);
 
-  // Handle the event
   switch (event.type) {
     case "payment_intent.succeeded":
       const paymentIntent = event.data.object;
-      console.log("Payment succeeded:", paymentIntent.id);
+      console.log("PaymentIntent was successful!");
       await handleSuccessfulPayment(paymentIntent);
       break;
     // ... handle other event types
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
-
-  // Return a response to acknowledge receipt of the event
-  res.json({ received: true });
-};
+}
 
 async function handleSuccessfulPayment(paymentIntent) {
-  const donation = await Donation.findOne({
+    console.log("Handling successful payment:", paymentIntent.id);
+    const donation = await Donation.findOne({
     stripePaymentIntentId: paymentIntent.id,
   });
   if (donation) {

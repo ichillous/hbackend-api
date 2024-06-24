@@ -32,6 +32,17 @@ const donationSchema = new mongoose.Schema({
   message: {
     type: String,
     maxlength: 500
+  },
+  recurringType: {
+    type: String,
+    enum: ['one-time', 'weekly', 'monthly', 'yearly'],
+    default: 'one-time'
+  },
+  recurringEndDate: Date,
+  recurringStatus: {
+    type: String,
+    enum: ['active', 'paused', 'cancelled'],
+    default: 'active'
   }
 }, { timestamps: true });
 
