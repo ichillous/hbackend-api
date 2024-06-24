@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const donationController = require('../controllers/donation.controller');
-const authMiddleware = require('../middleware/auth');
+const {authMiddleware} = require('../middleware/auth');
 
 // Webhook route should be first to ensure it uses the raw body parser
 router.post('/webhook', donationController.handleStripeWebhook);

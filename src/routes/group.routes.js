@@ -4,7 +4,7 @@ const router = express.Router();
 // Import group controller
 const groupController = require("../controllers/group.controller");
 // Import auth middleware
-const authMiddleware = require("../middleware/auth");
+const { authMiddleware } = require("../middleware/auth");
 
 router.get("/", groupController.getGroups);
 router.post("/", authMiddleware, groupController.createGroup);

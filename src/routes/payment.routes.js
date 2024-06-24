@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/payment.controller');
-const authMiddleware = require('../middleware/auth');
+const {authMiddleware} = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
 router.post('/create-payment-intent', authMiddleware, apiLimiter, paymentController.createPaymentIntent);
