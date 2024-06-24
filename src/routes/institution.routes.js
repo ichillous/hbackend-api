@@ -6,26 +6,11 @@ const authMiddleware = require('../middleware/auth');
 // TODO: Implement institution controller
 // const institutionController = require('../controllers/institution.controller');
 
-router.post('/events', (req, res) => {
-  // TODO: Implement create event
-  res.status(501).json({ message: 'Create event not implemented yet' });
-});
 
-router.get('/events', (req, res) => {
-  // TODO: Implement get institution events
-  res.status(501).json({ message: 'Get institution events not implemented yet' });
-});
-
-router.put('/events/:id', (req, res) => {
-  // TODO: Implement update event
-  res.status(501).json({ message: 'Update event not implemented yet' });
-});
-
-router.delete('/events/:id', (req, res) => {
-  // TODO: Implement delete event
-  res.status(501).json({ message: 'Delete event not implemented yet' });
-});
-
+router.post('/events', authMiddleware, institutionAuthMiddleware, institutionController.createEvent);
+router.get('/events', authMiddleware, institutionController.getInstitutionEvents);
+router.put('/events/:id', authMiddleware, institutionAuthMiddleware, institutionController.updateEvent);
+router.delete('/events/:id', authMiddleware, institutionAuthMiddleware, institutionController.deleteEvent);
 router.get('/nearest-mosque', institutionController.getNearestMosque);
 router.put('/prayer-times', authMiddleware, institutionController.updatePrayerTimes);
 
