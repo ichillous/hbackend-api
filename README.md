@@ -22,6 +22,73 @@ The Husna App backend is built with Node.js and Express, using MongoDB as the da
 - Search functionality
 - Payment integration for donations and paid classes using Stripe
 
+## Development Workflow
+
+1. Create a new branch for each feature or bug fix following the branch structure below.
+2. Write tests for new features using Jest and Supertest.
+3. Implement the feature or fix.
+4. Run tests locally: `npm test`
+5. Push your branch and create a pull request.
+6. GitHub Actions will run automated tests on your pull request.
+7. After review and approval, merge your changes into the appropriate branch.
+
+### Branch Structure and Pull Requests
+
+We follow a specific branch structure for our development process. The hierarchy is as follows:
+
+```
+main <- prod <- dev <- husna-month-year <- husna-cardnumber-shortDescription
+```
+
+- `main`: The main branch, representing the current production-ready state.
+- `prod`: Production branch, used for staging before merging into main.
+- `dev`: Development branch, where features are integrated.
+- `husna-month-year`: Branch for features developed in a specific month and year (e.g., husna-june-2024).
+- `husna-cardnumber-shortDescription`: Individual feature branches.
+
+#### Creating a New Feature Branch
+
+To create a new feature branch, use the following command structure:
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b husna-month-year
+git checkout -b husna-cardnumber-shortDescription
+```
+
+Replace `month-year` with the current month and year (e.g., june-2024), `cardnumber` with your task's card number, and `shortDescription` with a brief description of your feature.
+
+#### Pull Request Process
+
+1. Push your feature branch to GitHub:
+   ```
+   git push origin husna-cardnumber-shortDescription
+   ```
+
+2. Go to the GitHub repository and click on "Pull requests" > "New pull request".
+
+3. Set the base branch to `husna-month-year` and the compare branch to your feature branch.
+
+4. Fill in the pull request template with:
+   - A clear title describing your changes
+   - A detailed description of the changes and their purpose
+   - Any relevant issue or card numbers
+   - Steps to test the changes
+
+5. Assign reviewers and add appropriate labels.
+
+6. Once approved and all checks pass, merge your pull request into the `husna-month-year` branch.
+
+7. Delete your feature branch after merging.
+
+#### Merging into Higher-Level Branches
+
+Merging into higher-level branches (e.g., from `husna-month-year` to `dev`, or `dev` to `prod`) should be done carefully and typically involves a separate pull request process. These merges are usually performed by team leads or designated maintainers.
+
+Remember to always pull the latest changes from the parent branch before creating a new branch or submitting a pull request.
+
+
 ## Getting Started
 
 ### Prerequisites
