@@ -8,7 +8,9 @@ services:
       dockerfile: ./Dockerfile
     environment:
       NODE_ENV: development
+      JWT_PRIVATE_KEY_PATH: ./keys/jwtRS256.key
+      JWT_PUBLIC_KEY_PATH: ./keys/jwtRS256.key.pub
     ports:
-      - 3000:3000
+      - 8000:8000
       - 9229:9229
     command: ["node", "--inspect=0.0.0.0:9229", "index.js"]

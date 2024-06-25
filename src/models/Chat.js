@@ -1,40 +1,45 @@
 const mongoose = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
 
-const crypto = require("crypto");
-const algorithm = "aes-256-ctr";
-const secretKey = crypto.scryptSync(
-  process.env.MESSAGE_ENCRYPTION_KEY,
-  "salt",
-  32
-);
-const iv = crypto.randomBytes(16);
+const crypto = require('crypto');
+
+const password = 'myPassword';
+const salt = crypto.randomBytes(16);
+const key = crypto.scryptSync(password, salt, 32);
+
+console.log(key.toString('hex'));
+// const algorithm = "aes-256-ctr";
+// const secretKey = crypto.scryptSync(
+//   process.env.MESSAGE_ENCRYPTION_KEY,
+//   "salt",
+//   32
+// );
+// const iv = crypto.randomBytes(16);
 
 const encrypt = (text) => {
-  if (!secretKey) {
+  if (!key) {
     console.warn(
       "MESSAGE_ENCRYPTION_KEY not set. Messages will not be encrypted."
     );
     return { content: text };
   }
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+  const cipher = crypto.createCipheriv(password, key, salt);
   const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
   return {
-    iv: iv.toString("hex"),
+    salt: salt.toString("hex"),
     content: encrypted.toString("hex"),
   };
 };
 
 const decrypt = (hash) => {
-  if (!secretKey || !hash || !hash.iv || !hash.content) {
+  if (!key || !hash || !hash.salt || !hash.content) {
     console.warn("Unable to decrypt message. Returning as is.");
     return hash.content || hash;
   }
   const decipher = crypto.createDecipheriv(
-    algorithm,
-    secretKey,
-    Buffer.from(hash.iv, "hex")
+    password,
+    key,
+    Buffer.from(hash.salt, "hex")
   );
   const decrypted = Buffer.concat([
     decipher.update(Buffer.from(hash.content, "hex")),
@@ -50,7 +55,7 @@ const messageSchema = new mongoose.Schema({
     required: true,
   },
   content: {
-    iv: String,
+    salt: String,
     content: String,
   },
   timestamp: {

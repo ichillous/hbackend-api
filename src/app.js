@@ -1,10 +1,13 @@
 // Description: Main application file. This file is responsible for starting the server, connecting to the database, and setting up middleware and routes.
 require("dotenv").config();
-
+console.log('Twilio environment variables:');
+console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Not set');
+console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Not set');
+console.log('TWILIO_API_KEY:', process.env.TWILIO_API_KEY ? 'Set' : 'Not set');
+console.log('TWILIO_API_SECRET:', process.env.TWILIO_API_SECRET ? 'Set' : 'Not set');
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
-const donationController = require('./controllers/donation.controller');
 
 const port = process.env.PORT || 3000;
 const helmet = require("helmet");
@@ -31,7 +34,6 @@ const favoriteRoutes = require("./routes/favorite.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const reviewRoutes = require("./routes/review.routes");
 const paymentRoutes = require("./routes/payment.routes");
-const donationRoutes = require('./routes/donation.routes');
 const chatRoutes = require("./routes/chat.routes");
 const prayerTimeRoutes = require('./routes/prayerTime.routes');
 const twilioRoutes = require('./routes/twilio.routes');
@@ -44,8 +46,31 @@ const http = require("http");
 const socketIo = require("socket.io");
 const server = http.createServer(app);
 const io = socketIo(server);
+
+// Twilio
 const twilio = require('twilio');
-const twilioClient = twilio(process.env.TWILIO_API_KEY, process.env.TWILIO_API_SECRET, { accountSid: process.env.TWILIO_ACCOUNT_SID });
+let twilioClient;
+
+try {
+  twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  console.log('Twilio client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Twilio client:', error.message);
+  console.error('Twilio Account SID:', process.env.TWILIO_ACCOUNT_SID);
+  console.error('Twilio Auth Token:', process.env.TWILIO_AUTH_TOKEN ? 'Set (not shown for security)' : 'Not set');
+}
+
+app.post('/api/twilio/voice', (req, res) => {
+  if (!twilioClient) {
+    return res.status(500).json({ error: 'Twilio client not initialized' });
+  }
+  
+  const twiml = new twilio.twiml.VoiceResponse();
+  twiml.say('Welcome to the group call');
+  twiml.dial().conference('My conference');
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
 
 // Webhook-specific middleware
 

@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Group = require('../models/Group');
-const Payment = require('../models/Donation'); // Assume you have a Payment model
+const Payment = require('../models/Payment'); // Assume you have a Payment model
 
 exports.getDashboardStats = async (req, res) => {
   try {

@@ -3,7 +3,6 @@ const Chat = require("../models/Chat");
 const User = require("../models/User");
 const {
   createChatSchema,
-  sendMessageSchema,
 } = require("..//validations/chat.validation");
 const admin = require("../config/firebase");
 
