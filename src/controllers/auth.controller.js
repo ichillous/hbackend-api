@@ -1,44 +1,34 @@
+// src/controllers/auth.controller.js
 const User = require("../models/User");
-const { signToken } = require("../utils/jwt");
+const admin = require('../config/firebase-admin');
 
-exports.register = async (req, res) => {
+exports.signup = async (req, res) => {
   try {
-    const {
-      email,
-      password,
-      name,
-      username,
-      birthday,
-      gender,
-      location,
-      role,
-    } = req.body;
+    const { firebaseToken } = req.body;
 
-    const userExists = await User.findOne({ $or: [{ email }, { username }] });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    // Verify the Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
+    const { uid, email } = decodedToken;
+
+    // Check if the user exists in your database
+    let user = await User.findOne({ firebaseUid: uid });
+
+    if (!user) {
+      // If the user doesn't exist, you might want to create a new user
+      // or return an error if only pre-registered users are allowed
+      return res.status(403).json({ message: 'User not registered in the system' });
     }
 
-    const user = new User({
-      email,
-      password,
-      name,
-      username,
-      birthday,
-      gender,
-      location,
-      role,
-    });
-    await user.save();
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
 
-    console.log("User saved successfully, attempting to sign token");
-    console.log("User ID:", user._id);
+    // Generate a session token or use the Firebase token as is
+    // For simplicity, we'll use the Firebase token here
+    const token = firebaseToken;
 
-    const token = signToken({ userId: user._id });
-    console.log("Token signed successfully");
-
-    res.status(201).json({
-      message: "User registered successfully",
+    res.json({
+      message: 'Login successful',
       token,
       user: {
         id: user._id,
@@ -48,30 +38,27 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in register function:", error);
-    // Only send a response here if one hasn't been sent yet
-    if (!res.headersSent) {
-      res
-        .status(500)
-        .json({ message: "Error registering user", error: error.message });
-    }
+    console.error('Login error:', error);
+    res.status(400).json({ message: 'Invalid credentials' });
   }
 };
 
-exports.login = async (req, res) => {
+exports.signin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { idToken } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user || !(await user.checkPassword(password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    // Verify the Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid } = decodedToken;
+
+    // Find user in your MongoDB
+    const user = await User.findOne({ firebaseUid: uid });
+    if (!user) {
+      return res.status(404).json({ message: "User not found. Please sign up." });
     }
-
-    const token = signToken({ userId: user._id });
 
     res.json({
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         email: user.email,
@@ -80,6 +67,12 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error logging in", error: error.message });
+    console.error('Error in signin function:', error);
+    res.status(500).json({ message: "Error signing in", error: error.message });
   }
+};
+
+// Logout doesn't need to do anything on the server side when using Firebase Auth
+exports.logout = (req, res) => {
+  res.json({ message: "Logout successful" });
 };

@@ -71,3 +71,57 @@ exports.notifyGroupUpdate = async (groupId) => {
     });
   });
 };
+
+
+exports.notifyModeratorChange = async (groupId, userId, isAdded) => {
+  const group = await Group.findById(groupId);
+  await Notification.create({
+    recipient: userId,
+    type: isAdded ? "moderator_added" : "moderator_removed",
+    relatedItem: groupId,
+    itemType: "Group",
+    message: isAdded ? `You have been added as a moderator for the group "${group.name}".` : `You have been removed as a moderator from the group "${group.name}".`,
+  });
+};
+exports.notifyClassCreated = async (classId) => {
+  const classGroup = await Group.findById(classId).populate("createdBy");
+  await Notification.create({
+    recipient: classGroup.createdBy,
+    type: "class_created",
+    relatedItem: classId,
+    itemType: "Class",
+    message: `You have successfully created the class "${classGroup.name}".`,
+  });
+};
+
+exports.notifyClassJoined = async (classId, userId) => {
+  const classGroup = await Group.findById(classId).populate("createdBy");
+  await Notification.create({
+    recipient: classGroup.createdBy,
+    type: "class_joined",
+    relatedItem: classId,
+    itemType: "Class",
+    message: `A new user has joined your class "${classGroup.name}".`,
+  });
+};
+exports.notifySpeakerChange = async (groupId, userId, isAdded) => {
+  const group = await Group.findById(groupId);
+  await Notification.create({
+    recipient: userId,
+    type: isAdded ? "speaker_added" : "speaker_removed",
+    relatedItem: groupId,
+    itemType: "Group",
+    message: isAdded ? `You have been added as a speaker for the group "${group.name}".` : `You have been removed as a speaker from the group "${group.name}".`,
+  });
+};
+
+exports.notifyPaymentSuccess = async (userId, groupId, amount) => {
+  const group = await Group.findById(groupId);
+  await Notification.create({
+    recipient: userId,
+    type: "payment_success",
+    relatedItem: groupId,
+    itemType: "Group",
+    message: `Your payment of ${amount} for the group "${group.name}" was successful.`,
+  });
+};

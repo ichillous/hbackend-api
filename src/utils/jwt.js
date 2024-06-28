@@ -15,19 +15,18 @@ const publicKeyPath = path.join(
   process.env.JWT_PUBLIC_KEY_PATH
 );
 
-let privateKey, publicKey;
+let privateKey, publicKey, passphrase;
 
 try {
-    privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-    publicKey = fs.readFileSync(publicKeyPath, 'utf8');
-    console.log("Private key loaded successfully");
-    console.log("Public key loaded successfully");
+  privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+  publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+  passphrase = process.env.JWT_PASSPHRASE;
+  console.log("Private key loaded successfully");
+  console.log("Public key loaded successfully");
 } catch (error) {
   console.error("Error reading JWT key files:", error);
   process.exit(1);
 }
-
-const passphrase = process.env.JWT_PASSPHRASE;
 
 function signToken(payload) {
   try {
@@ -38,8 +37,9 @@ function signToken(payload) {
   }
 }
 
+
 function verifyToken(token) {
-    return jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+  return jwt.verify(token, publicKey, { algorithms: ['RS256'] });
 }
 
 module.exports = { signToken, verifyToken };

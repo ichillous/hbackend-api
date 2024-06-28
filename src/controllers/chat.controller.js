@@ -1,10 +1,7 @@
+// src/controllers/chat.controller.js
 const mongoose = require("mongoose");
-const Chat = require("../models/Chat");
-const User = require("../models/User");
-const {
-  createChatSchema,
-} = require("..//validations/chat.validation");
-const admin = require("../config/firebase");
+const { Chat, Message } = require("../models/Chat");
+const { createChatSchema } = require("../validations/chat.validation");
 
 exports.createChat = async (req, res) => {
   try {
@@ -24,11 +21,13 @@ exports.createChat = async (req, res) => {
     await newChat.save();
     res.status(201).json(newChat);
   } catch (error) {
+    console.error("Error creating chat:", error);
     res
       .status(500)
       .json({ message: "Error creating chat", error: error.message });
   }
 };
+
 
 exports.createMessage = async (chatId, userId, content) => {
   const chat = await Chat.findById(chatId);
@@ -38,10 +37,10 @@ exports.createMessage = async (chatId, userId, content) => {
   if (!chat.participants.includes(userId)) {
     throw new Error("User is not a participant in this chat");
   }
-  const newMessage = {
+  const newMessage = new Message({
     sender: userId,
     content: content,
-  };
+  });
   chat.messages.push(newMessage);
   await chat.save();
   return chat.messages[chat.messages.length - 1];
@@ -56,19 +55,31 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ message: 'ChatId and content are required' });
     }
 
-    const newMessage = await this.createMessage(chatId, userId, content);
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    if (!chat.participants.includes(userId)) {
+      return res.status(403).json({ message: 'You are not a participant in this chat' });
+    }
+
+    const newMessage = new Message({
+      sender: userId,
+      content: content,
+    });
+
+    chat.messages.push(newMessage);
+    chat.lastActivity = new Date();
+    await chat.save();
+
     res.status(201).json(newMessage);
   } catch (error) {
     console.error('Error in sendMessage:', error);
-    if (error.message === 'Chat not found') {
-      return res.status(404).json({ message: 'Chat not found' });
-    }
-    if (error.message === 'User is not a participant in this chat') {
-      return res.status(403).json({ message: 'You are not a participant in this chat' });
-    }
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 exports.getChatMessages = async (req, res) => {
   try {
@@ -131,11 +142,17 @@ exports.getChatMessages = async (req, res) => {
 
 exports.getUserChats = async (req, res) => {
   try {
-    const chats = await Chat.find({ participants: req.user.userId })
-      .populate("participants", "name")
-      .populate("groupId", "name");
-    res.status(200).json(chats);
+    const db = await connectToDatabase();
+    const chats = await db.collection('chats')
+      .find({ participants: req.user.userId })
+      .toArray();
+    
+    // Here you might want to populate participant information
+    // This would require additional database queries
+
+    res.status(200).json(chats.map(chat => new Chat(chat)));
   } catch (error) {
+    console.error("Error fetching user chats:", error);
     res.status(500).json({ message: error.message });
   }
 };

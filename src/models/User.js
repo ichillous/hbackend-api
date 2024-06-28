@@ -1,201 +1,150 @@
-const mongoose = require("mongoose");
+// /Users/isiahchillous/Documents/dev/backend/hbackend-api/src/models/User.js
+
+const { connectToDatabase } = require("../config/database");
+const { ObjectId } = require("mongodb");
 const bcrypt = require("bcryptjs");
 
-// For institutions
-const prayerTimeSchema = new mongoose.Schema(
-  {
-    fajr: String,
-    dhuhr: String,
-    asr: String,
-    maghrib: String,
-    isha: String,
-  },
-  { _id: false }
-);
-
-const UserSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    birthday: {
-      type: Date,
-      required: true,
-    },
-    gender: {
-      type: String,
-      enum: ["male", "female", "other", "prefer not to say"],
-      required: true,
-    },
-    organizationType: {
-      type: String,
-      enum: ["mosque", "charity", "educational", "other"],
-      required: function () {
-        return this.role === "institution";
-      },
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        default: [0, 0],
-      },
-    },
-    address: {
-      type: String,
-      required: function () {
-        return this.role === "institution";
-      },
-    },
-    prayerTimes: {
-      type: prayerTimeSchema,
-      required: function () {
-        return (
-          this.role === "institution" && this.organizationType === "mosque"
-        );
-      },
-    },
-    profilePicture: {
-      type: String,
-      default: "",
-    },
-    role: {
-      type: String,
-      enum: ["user", "instructor", "institution", "admin"],
-      required: true,
-    },
-    interests: [
-      {
-        type: String,
-        enum: [
-          "Quran",
-          "Hadith",
-          "Fiqh",
-          "Seerah",
-          "Islamic History",
-          "Contemporary issues",
-        ],
-      },
-    ],
-    bio: {
-      type: String,
-      default: "",
-    },
-    // Fields for instructors
-    skills: [
-      {
-        type: String,
-      },
-    ],
-    services: [
-      {
-        type: String,
-      },
-    ],
-    languages: [
-      {
-        type: String,
-        enum: require("../config/languages"),
-      },
-    ],
-    teachingExperience: {
-      type: Number,
-      default: 0,
-    },
-    // Fields for institutions
-    nonProfitName: {
-      type: String,
-    },
-    organizationType: {
-      type: String,
-    },
-    documentsUploaded: {
-      type: Boolean,
-      default: false,
-    },
-    // Fields for both instructors and institutions
-    verificationStatus: {
-      type: String,
-      enum: ["unverified", "pending", "verified"],
-      default: "unverified",
-    },
-    ratings: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        rating: {
-          type: Number,
-          min: 1,
-          max: 5,
-        },
-        review: String,
-      },
-    ],
-    favoriteEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],
-    favoriteInstructors: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ],
-    favoriteInstitutions: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ],
-    averageRating: {
-      type: Number,
-      default: 0,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-UserSchema.index({ location: "2dsphere" });
-
-// Hash password before saving
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
-
-// Method to check password
-UserSchema.methods.checkPassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+const UserRoles = {
+  ADMIN: "admin",
+  USER: "user",
+  INSTRUCTOR: "instructor",
+  INSTITUTION: "institution",
 };
 
-// Calculate average rating
-UserSchema.methods.calculateAverageRating = function () {
-  if (this.ratings.length === 0) {
-    this.averageRating = 0;
-  } else {
-    const sum = this.ratings.reduce((acc, curr) => acc + curr.rating, 0);
-    this.averageRating = sum / this.ratings.length;
+class User {
+  constructor(userData) {
+    Object.assign(this, userData);
+    this.firebaseUid = userData.firebaseUid;
+    this.role = userData.role || UserRoles.USER;
+    this.stripeAccountId = userData.stripeAccountId;
+    this.stripeOnboardingComplete = userData.stripeOnboardingComplete || false;
+    this.isVerified = userData.isVerified || false;
+    this.verificationStatus = userData.verificationStatus || "pending";
+    this.name = userData.name;
+    this.dob = userData.dob;
+    this.gender = userData.gender;
+    this.email = userData.email;
+    this.phoneNumber = userData.phoneNumber;
+    this.password = userData.password; // Remember to hash this before saving
+    this.location = userData.location;
   }
-  return this.averageRating;
-};
 
-module.exports = mongoose.model("User", UserSchema);
+  // Save user to database
+  async save() {
+    const db = await connectToDatabase();
+    if (this.password) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
+    if (this._id) {
+      // Update existing user
+      const result = await db
+        .collection("users")
+        .updateOne({ _id: new ObjectId(this._id) }, { $set: this });
+      return result;
+    } else {
+      // Insert new user
+      const result = await db.collection("users").insertOne(this);
+      this._id = result.insertedId;
+      return result;
+    }
+  }
+
+  async checkPassword(candidatePassword) {
+    return await bcrypt.compare(candidatePassword, this.password);
+  }
+
+  async updateStripeAccount(stripeAccountId, onboardingComplete = false) {
+    this.stripeAccountId = stripeAccountId;
+    this.stripeOnboardingComplete = onboardingComplete;
+    await this.save();
+  }
+
+  static async findOne(query) {
+    const db = await connectToDatabase();
+    const user = await db.collection("users").findOne(query);
+    return user ? new User(user) : null;
+  }
+
+  // Find or create user based on Google ID
+  static async findOrCreateByGoogleId(googleData) {
+    const db = await connectToDatabase();
+    let user = await db
+      .collection("users")
+      .findOne({ googleId: googleData.sub });
+
+    if (!user) {
+      user = new User({
+        googleId: googleData.sub,
+        email: googleData.email,
+        name: googleData.name,
+        isVerified: googleData.email_verified,
+        role: UserRoles.USER,
+      });
+      await user.save();
+    }
+
+    return new User(user);
+  }
+
+  static async findById(id) {
+    const db = await connectToDatabase();
+    const user = await db
+      .collection("users")
+      .findOne({ _id: new ObjectId(id) });
+    return user ? new User(user) : null;
+  }
+
+  static async findByEmail(email) {
+    const db = await connectToDatabase();
+    const user = await db
+      .collection("users")
+      .findOne({ email: email.toLowerCase() });
+    return user ? new User(user) : null;
+  }
+
+  static async findByUsername(username) {
+    const db = await connectToDatabase();
+    const user = await db
+      .collection("users")
+      .findOne({ username: username.trim() });
+    return user ? new User(user) : null;
+  }
+
+  static async findByRole(role) {
+    const db = await connectToDatabase();
+    const users = await db.collection("users").find({ role }).toArray();
+    return users.map((user) => new User(user));
+  }
+
+  calculateAverageRating() {
+    if (this.ratings.length === 0) {
+      this.averageRating = 0;
+    } else {
+      const sum = this.ratings.reduce((acc, curr) => acc + curr.rating, 0);
+      this.averageRating = sum / this.ratings.length;
+    }
+    return this.averageRating;
+  }
+
+  isModified(field) {
+    // TODO: Implement proper change tracking mechanism
+    return true;
+  }
+
+  static async createIndexes() {
+    const db = await connectToDatabase();
+    await db.collection("users").createIndex({ email: 1 }, { unique: true });
+    await db
+      .collection("users")
+      .createIndex({ firebaseUid: 1 }, { unique: true });
+    await db.collection("users").createIndex({ username: 1 }, { unique: true });
+    await db.collection("users").createIndex({ googleId: 1 }, { unique: true });
+    await db
+      .collection("users")
+      .createIndex({ phoneNumber: 1 }, { unique: true });
+    await db.collection("users").createIndex({ location: "2dsphere" });
+    await db.collection("users").createIndex({ role: 1 });
+  }
+}
+
+module.exports = User;

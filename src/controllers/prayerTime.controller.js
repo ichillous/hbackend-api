@@ -1,7 +1,7 @@
-const { getPrayerTimes } = require("../utils/prayerTimes");
+const { getPrayerTimesUtil } = require("../utils/prayerTimes");
 const PrayerTime = require("../models/PrayerTime");
 
-exports.getPrayerTimes = async (req, res) => {
+const getPrayerTimes = async (req, res) => {
   const { date, latitude, longitude } = req.query;
 
   try {
@@ -15,7 +15,7 @@ exports.getPrayerTimes = async (req, res) => {
     }
 
     // If no custom times, use the existing getPrayerTimes function
-    const calculatedTimes = await getPrayerTimes(
+    const calculatedTimes = await getPrayerTimesUtil(
       latitude,
       longitude,
       new Date(date)
@@ -28,7 +28,7 @@ exports.getPrayerTimes = async (req, res) => {
   }
 };
 
-exports.setCustomPrayerTimes = async (req, res) => {
+const setCustomPrayerTimes = async (req, res) => {
   const { date, fajr, dhuhr, asr, maghrib, isha } = req.body;
 
   try {
@@ -68,4 +68,9 @@ exports.setCustomPrayerTimes = async (req, res) => {
         error: error.message,
       });
   }
+};
+
+module.exports = {
+  getPrayerTimes,
+  setCustomPrayerTimes,
 };

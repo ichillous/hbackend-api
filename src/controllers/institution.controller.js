@@ -1,41 +1,8 @@
 const User = require("../models/User");
 
-exports.getNearestMosque = async (req, res) => {
-  try {
-    const { longitude, latitude } = req.query;
-    const mosque = await User.findOne({
-      role: "institution",
-      organizationType: "mosque",
-      location: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [parseFloat(longitude), parseFloat(latitude)],
-          },
-        },
-      },
-    }).select("name address prayerTimes");
 
-    if (!mosque) {
-      // If no mosque is found, return default prayer times
-      const defaultPrayerTimes = await getPrayerTimes(
-        latitude,
-        longitude,
-        new Date()
-      );
-      return res.json({
-        message: "No mosques found nearby. Showing default prayer times.",
-        prayerTimes: defaultPrayerTimes,
-      });
-    }
 
-    res.json(mosque);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.updateInstitutionProfile = async (req, res) => {
+const updateInstitutionProfile = async (req, res) => {
   try {
     const { name, description, address, website, phoneNumber } = req.body;
     const institution = await User.findById(req.user.userId);
@@ -63,7 +30,7 @@ exports.updateInstitutionProfile = async (req, res) => {
   }
 };
 
-exports.getInstitutionDetails = async (req, res) => {
+const getInstitutionDetails = async (req, res) => {
   try {
     const institution = await User.findById(req.params.id)
       .select("name description address website phoneNumber followers events")
@@ -81,7 +48,7 @@ exports.getInstitutionDetails = async (req, res) => {
 };
 
 // Add follower to institution
-exports.addFollower = async (req, res) => {
+const addFollower = async (req, res) => {
   try {
     const institution = await User.findById(req.params.id);
     const follower = await User.findById(req.user.userId);
@@ -106,7 +73,7 @@ exports.addFollower = async (req, res) => {
 };
 
 // Remove follower from institution
-exports.removeFollower = async (req, res) => {
+const removeFollower = async (req, res) => {
   try {
     const institution = await User.findById(req.params.id);
     const follower = await User.findById(req.user.userId);
@@ -136,7 +103,7 @@ exports.removeFollower = async (req, res) => {
 };
 
 // Get institution followers
-exports.getInstitutionFollowers = async (req, res) => {
+const getInstitutionFollowers = async (req, res) => {
   try {
     const institution = await User.findById(req.params.id).populate(
       "followers",
@@ -153,7 +120,7 @@ exports.getInstitutionFollowers = async (req, res) => {
   }
 };
 
-exports.updatePrayerTimes = async (req, res) => {
+const updatePrayerTimes = async (req, res) => {
   try {
     const institution = await User.findById(req.user.userId);
     if (
@@ -179,3 +146,12 @@ exports.updatePrayerTimes = async (req, res) => {
 };
 
 // Add other institution-specific operations as needed
+
+module.exports = {
+  updateInstitutionProfile,
+  getInstitutionDetails,
+  addFollower,
+  removeFollower,
+  getInstitutionFollowers,
+  updatePrayerTimes
+};

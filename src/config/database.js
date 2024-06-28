@@ -1,13 +1,26 @@
-const mongoose = require('mongoose');
+// src/config/database.js
 
-const connectDB = async () => {
+const { MongoClient } = require('mongodb');
+
+const uri = process.env.MONGODB_URI;
+const dbName = 'your_database_name'; // Replace with your actual database name
+
+let client;
+let db;
+
+async function connectToDatabase() {
+  if (db) return db;
+
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected successfully');
-  } catch (err) {
-    console.error('MongoDB connection error:', err.message);
+    client = new MongoClient(uri);
+    await client.connect();
+    db = client.db(dbName);
+    console.log("Successfully connected to MongoDB!");
+    return db;
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error);
     process.exit(1);
   }
-};
+}
 
-module.exports = connectDB;
+module.exports = { connectToDatabase };

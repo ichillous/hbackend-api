@@ -1,15 +1,15 @@
 // src/routes/payment.routes.js
 
 const express = require('express');
-const router = express.Router();
+const { authMiddleware, isAdmin } = require('../middleware/auth');
 const paymentController = require('../controllers/payment.controller');
-const { authMiddleware } = require('../middleware/auth');
-const { apiLimiter } = require('../middleware/rateLimiter');
 
-router.post('/create-payment-intent', authMiddleware, apiLimiter, paymentController.createPaymentIntent);
-router.post('/:paymentId/confirm', authMiddleware, paymentController.confirmPayment);
-router.get('/user', authMiddleware, paymentController.getPaymentsByUser);
-router.get('/recipient/:recipientId', authMiddleware, paymentController.getPaymentsByRecipient);
-router.post('/webhook', express.raw({type: 'application/json'}), paymentController.handleStripeWebhook);
+const router = express.Router();
+
+router.post('/create-account', authMiddleware, paymentController.createStripeAccount);
+router.post('/create-payment-intent', authMiddleware, paymentController.createPaymentIntent);
+router.post('/webhook', paymentController.handleStripeWebhook);
+router.get('/all', authMiddleware, isAdmin, paymentController.getPayments);
+router.get('/platform-earnings', authMiddleware, isAdmin, paymentController.getPlatformEarnings);
 
 module.exports = router;

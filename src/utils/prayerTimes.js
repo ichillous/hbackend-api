@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const getPrayerTimes = async (latitude, longitude, date) => {
+const getPrayerTimesUtil  = async (latitude, longitude, date) => {
   try {
     const response = await axios.get('http://api.aladhan.com/v1/timings', {
       params: {
@@ -25,4 +25,4 @@ const getPrayerTimes = async (latitude, longitude, date) => {
   }
 };
 
-module.exports = { getPrayerTimes };
+module.exports = { getPrayerTimesUtil };
